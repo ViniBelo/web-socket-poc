@@ -56,6 +56,12 @@ export default function Chat() {
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      sendMessage();
+    }
+  };
+
   const ListMessages = () => {
     const listMessages = messages.map((message) => (
       <li
@@ -82,6 +88,7 @@ export default function Chat() {
           type="text"
           value={message}
           onChange={(newMessage) => setMessage(newMessage.target.value)}
+          onKeyDown={handleKeyDown}
         ></input>
         <button
           className="bg-gray-700 border-s-violet-100 p-3 rounded-3xl size-12 w-3xs"
