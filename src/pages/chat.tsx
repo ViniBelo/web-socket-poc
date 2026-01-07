@@ -7,6 +7,11 @@ import { useEffect, useRef, useState } from "react";
 interface IMessage {
   id: string;
   body: string;
+  user: IUser;
+}
+
+interface IUser {
+  id: string;
 }
 
 export default function Chat() {
@@ -15,6 +20,7 @@ export default function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<Array<IMessage>>([]);
   const clientRef = useRef<Client>(null);
+  const [user] = useState<IUser>({ id: crypto.randomUUID() });
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -29,9 +35,14 @@ export default function Chat() {
       brokerURL: "ws://localhost:8080/ws",
       onConnect: () => {
         client.subscribe(topic, (message) => {
+          const payload = JSON.parse(message.body);
           setMessages((prev) => [
             ...prev,
-            { id: crypto.randomUUID(), body: message.body },
+            {
+              id: crypto.randomUUID(),
+              body: payload.content,
+              user: { id: payload.senderId },
+            },
           ]);
         });
       },
@@ -49,7 +60,11 @@ export default function Chat() {
 
   const sendMessage = () => {
     if (clientRef.current && clientRef.current.connected) {
-      clientRef.current.publish({ destination: topic, body: message });
+      const payload = { content: message, senderId: user.id };
+      clientRef.current.publish({
+        destination: topic,
+        body: JSON.stringify(payload),
+      });
       setMessage("");
     } else {
       console.log("Not connected to the WebSocket server");
@@ -63,21 +78,29 @@ export default function Chat() {
   };
 
   const ListMessages = () => {
-    const listMessages = messages.map((message) => (
-      <li
-        className="max-w-fit m-3 border-s-stone-600 p-3 bg-gray-800 rounded-r-3xl rounded-bl-3xl text-3xl"
-        key={message.id}
-      >
-        {message.body}
-      </li>
-    ));
-    return <ul>{listMessages}</ul>;
+    const listMessages = messages.map((message) => {
+      const isAuthor = message.user.id === user.id;
+
+      return (
+        <li
+          key={message.id}
+          className={`max-w-fit m-3 p-3 text-3xl break-all ${
+            isAuthor
+              ? "self-end bg-violet-900 rounded-l-3xl rounded-br-3xl"
+              : "self-start bg-gray-800 rounded-r-3xl rounded-bl-3xl"
+          }`}
+        >
+          {message.body}
+        </li>
+      );
+    });
+    return <ul className="flex flex-col w-full">{listMessages}</ul>;
   };
 
   return (
     <div className="flex flex-col h-screen w-full items-center gap-3 pb-6 overflow-hidden">
       <div className="flex-1 w-full overflow-y-auto px-4">
-        <div className="flex flex-col justify-center-safe min-w-full">
+        <div className="flex flex-col min-w-full">
           {ListMessages()}
           <div ref={messagesEndRef} />
         </div>
