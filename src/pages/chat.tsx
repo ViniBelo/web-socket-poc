@@ -15,7 +15,6 @@ interface IUser {
 }
 
 export default function Chat() {
-  const topic = "/topic/chat";
   const [message, setMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<Array<IMessage>>([]);
@@ -34,17 +33,20 @@ export default function Chat() {
     const client = new Client({
       brokerURL: "ws://localhost:8080/ws",
       onConnect: () => {
-        client.subscribe(topic, (message) => {
-          const payload = JSON.parse(message.body);
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: crypto.randomUUID(),
-              body: payload.content,
-              user: { id: payload.senderId },
-            },
-          ]);
-        });
+        client.subscribe(
+          "/topic/chat/0f35fca9-e4de-4b49-8239-bc0cdea82c74",
+          (message) => {
+            const payload = JSON.parse(message.body);
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: crypto.randomUUID(),
+                body: payload.content,
+                user: { id: payload.senderId },
+              },
+            ]);
+          },
+        );
       },
       onDisconnect: () => {
         console.log("Disconnected");
@@ -62,7 +64,7 @@ export default function Chat() {
     if (clientRef.current && clientRef.current.connected) {
       const payload = { content: message, senderId: user.id };
       clientRef.current.publish({
-        destination: topic,
+        destination: "/app/chat/0f35fca9-e4de-4b49-8239-bc0cdea82c74",
         body: JSON.stringify(payload),
       });
       setMessage("");
