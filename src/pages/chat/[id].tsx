@@ -1,8 +1,9 @@
 "use client";
 
-import "../app/globals.css";
+import "../../app/globals.css";
 import { Client } from "@stomp/stompjs";
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/router";
 
 interface IMessage {
   id: string;
@@ -15,6 +16,8 @@ interface IUser {
 }
 
 export default function Chat() {
+  const router = useRouter();
+  const { id: chatId } = router.query;
   const [message, setMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<Array<IMessage>>([]);
@@ -30,23 +33,22 @@ export default function Chat() {
   }, [messages]);
 
   useEffect(() => {
+    if (!chatId) return;
+
     const client = new Client({
       brokerURL: "ws://localhost:8080/ws",
       onConnect: () => {
-        client.subscribe(
-          "/topic/chat/0f35fca9-e4de-4b49-8239-bc0cdea82c74",
-          (message) => {
-            const payload = JSON.parse(message.body);
-            setMessages((prev) => [
-              ...prev,
-              {
-                id: crypto.randomUUID(),
-                body: payload.content,
-                user: { id: payload.senderId },
-              },
-            ]);
-          },
-        );
+        client.subscribe(`/topic/chat/${chatId}`, (message) => {
+          const payload = JSON.parse(message.body);
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: crypto.randomUUID(),
+              body: payload.content,
+              user: { id: payload.senderId },
+            },
+          ]);
+        });
       },
       onDisconnect: () => {
         console.log("Disconnected");
@@ -58,13 +60,13 @@ export default function Chat() {
     return () => {
       client.deactivate();
     };
-  }, []);
+  }, [chatId]);
 
   const sendMessage = () => {
     if (clientRef.current && clientRef.current.connected) {
       const payload = { content: message, senderId: user.id };
       clientRef.current.publish({
-        destination: "/app/chat/0f35fca9-e4de-4b49-8239-bc0cdea82c74",
+        destination: `/app/chat/${chatId}`,
         body: JSON.stringify(payload),
       });
       setMessage("");
@@ -99,6 +101,14 @@ export default function Chat() {
     return <ul className="flex flex-col w-full">{listMessages}</ul>;
   };
 
+  if (!chatId) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <p className="text-2xl text-gray-400">Loading...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-screen w-full items-center gap-3 pb-6 overflow-hidden">
       <div className="flex-1 w-full overflow-y-auto px-4">
@@ -115,10 +125,7 @@ export default function Chat() {
           onChange={(newMessage) => setMessage(newMessage.target.value)}
           onKeyDown={handleKeyDown}
         ></input>
-        <button
-          className="bg-gray-700 border-s-violet-100 p-3 rounded-3xl size-12 w-3xs"
-          onClick={sendMessage}
-        >
+        <button className="action-button" onClick={sendMessage}>
           Send message
         </button>
       </div>
