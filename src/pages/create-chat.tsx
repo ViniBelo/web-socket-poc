@@ -3,6 +3,7 @@
 import "../app/globals.css";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { IChat } from "./chat";
 
 export default function CreateChat() {
   const [name, setName] = useState("");
@@ -33,7 +34,8 @@ export default function CreateChat() {
         throw new Error("Failed to create chat");
       }
 
-      router.push("/chats");
+      const chat: IChat = await response.json();
+      router.push(`/chats/${chat.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {

@@ -2,11 +2,7 @@
 
 import "../app/globals.css";
 import { useEffect, useState } from "react";
-
-interface IChat {
-  id: string;
-  name: string;
-}
+import { IChat } from "./chat/chat";
 
 export default function Chats() {
   const [chats, setChats] = useState<Array<IChat>>([]);
@@ -58,7 +54,7 @@ export default function Chats() {
           {chats.map((chat) => (
             <li key={chat.id}>
               <a
-                href={`/chat/${chat.id}`}
+                href={`/chats/${chat.id}`}
                 className="block p-4 bg-gray-800 rounded-xl hover:bg-gray-700 transition-colors"
               >
                 <p className="text-xl">{chat.name || `Chat ${chat.id}`}</p>
